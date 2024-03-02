@@ -8,34 +8,18 @@ import java.util.function.Predicate
 internal class SQLMutableList<T : Any>(
     private val helper: SQLiteOpenHelper,
     private val tableName: String,
-    private val args: Array<String>,
+    private val args: Array<String> = arrayOf("id"),
     private val primaryKey: String = "id",
-    private val getPrimaryValue: (T) -> String,
+    private val getPrimaryValue: (T) -> String = {
+        val type = it::class.java
+        val field = type.getDeclaredField("id")
+        field.isAccessible = true
+        val value = field.get(it) ?: error("No value by \"id\"!")
+        value.toString()
+    },
     private val toContentValues: (T) -> ContentValues,
     private val toItem: (Cursor) -> T,
 ) : MutableList<T> {
-    private fun <T : Any> Cursor.toMutableList(
-        toItem: (Cursor) -> T,
-    ): MutableList<T> {
-        val result = mutableListOf<T>()
-        while (moveToNext()) {
-            val item = toItem(this)
-            result.add(item)
-        }
-        return result
-    }
-
-    private fun <T : Any> Cursor.firstOrNull(
-        predicate: (T) -> Boolean,
-        toItem: (Cursor) -> T,
-    ): T? {
-        while (moveToNext()) {
-            val item = toItem(this)
-            if (predicate(item)) return item
-        }
-        return null
-    }
-
     override val size: Int
         get() {
             return helper.readableDatabase.rawQuery(

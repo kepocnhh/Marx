@@ -1,6 +1,5 @@
 package org.kepocnhh.marx.provider
 
-import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
@@ -29,17 +28,16 @@ internal class FinalLocalDataProvider(
         helper = helper,
         tableName = "Foo",
         args = arrayOf("id", "text"),
-        getPrimaryValue = { it.id.toString() },
         toContentValues = {
-            val values = ContentValues()
-            values.put("id", it.id.toString())
-            values.put("text", it.text)
-            values
+            contentValuesOf(
+                "id" to it.id.toString(),
+                "text" to it.text,
+            )
         },
         toItem = {
             Foo(
-                id = it.getString(it.getColumnIndexOrThrow("id")).let(UUID::fromString),
-                text = it.getString(it.getColumnIndexOrThrow("text")),
+                id = it.getString("id").let(UUID::fromString),
+                text = it.getString("text"),
             )
         },
     )
