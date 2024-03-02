@@ -32,3 +32,39 @@ internal fun ColumnButton(
         ),
     )
 }
+
+@Composable
+internal fun ColumnText(
+    text: String,
+) {
+    BasicText(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(64.dp)
+            .wrapContentHeight(),
+        text = text,
+        style = TextStyle(
+            color = Color.Black,
+            fontSize = 17.sp,
+        ),
+    )
+}
+
+@Composable
+internal fun ColumnText(
+    text: String,
+    onClick: () -> Unit,
+) {
+    BasicText(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(64.dp)
+            .clickable(onClick = onClick)
+            .wrapContentHeight(),
+        text = text,
+        style = TextStyle(
+            color = Color.Black,
+            fontSize = 17.sp,
+        ),
+    )
+}
