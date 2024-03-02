@@ -32,6 +32,7 @@ import org.kepocnhh.marx.entity.Foo
 import org.kepocnhh.marx.util.compose.BackHandler
 import org.kepocnhh.marx.util.compose.ColumnButton
 import org.kepocnhh.marx.util.compose.ColumnText
+import org.kepocnhh.marx.util.compose.RectButton
 import java.util.UUID
 
 @Composable
@@ -118,42 +119,45 @@ internal fun FooScreen(
                 listState.value = App.ldp.foo
             }
         }
-        val list = listState.value.orEmpty()
-        LazyColumn(
-            contentPadding = PaddingValues(vertical = 64.dp),
-        ) {
-            items(
-                count = list.size,
-                key = { list[it].id },
-            ) { index ->
-                val item = list[index]
-                ColumnText(
-                    text = "$index) text: \"${item.text}\"",
-                    onClick = {
-                        deleteState.value = item.id
-                    },
-                )
+        val list = listState.value
+        if (list.isNullOrEmpty()) {
+            BasicText(
+                modifier = Modifier
+                    .align(Alignment.Center),
+                text = "no items",
+                style = TextStyle(
+                    color = Color.Black,
+                    fontSize = 17.sp,
+                ),
+            )
+        } else {
+            LazyColumn(
+                contentPadding = PaddingValues(vertical = 64.dp),
+            ) {
+                items(
+                    count = list.size,
+                    key = { list[it].id },
+                ) { index ->
+                    val item = list[index]
+                    ColumnText(
+                        text = "$index) text: \"${item.text}\"",
+                        onClick = {
+                            deleteState.value = item.id
+                        },
+                    )
+                }
             }
         }
         Box(
             modifier = Modifier
                 .padding(end = 32.dp, bottom = 64.dp)
-                .size(64.dp)
-                .clickable {
-                    addState.value = true
-                }
-                .background(Color.Black)
                 .align(Alignment.BottomEnd),
         ) {
-            BasicText(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .wrapContentSize(),
+            RectButton(
                 text = "+",
-                style = TextStyle(
-                    color = Color.White,
-                    fontSize = 17.sp,
-                ),
+                onClick = {
+                    addState.value = true
+                },
             )
         }
     }
