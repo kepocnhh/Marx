@@ -61,9 +61,7 @@ internal fun BarScreen(
                         ColumnButton(
                             text = "Yes",
                             onClick = {
-                                App.ldp.bar = App.ldp.bar.toMutableList().also { list ->
-                                    list.removeIf { it.id == deleteId }
-                                }
+                                App.ldp.bar.removeIf { it.id == deleteId }
                                 listState.value = null
                                 deleteState.value = null
                             },
@@ -113,13 +111,11 @@ internal fun BarScreen(
                                 if (year != null && year > 0) {
                                     if (month != null && month > 0) {
                                         if (day != null && day > 0) {
-                                            App.ldp.bar = App.ldp.bar.toMutableList().also { list ->
-                                                val item = Bar(
-                                                    id = UUID.randomUUID(),
-                                                    date = Date(year - 1900, month - 1, day).time.milliseconds,
-                                                )
-                                                list.add(item)
-                                            }
+                                            val item = Bar(
+                                                id = UUID.randomUUID(),
+                                                date = Date(year - 1900, month - 1, day).time.milliseconds,
+                                            )
+                                            App.ldp.bar.add(item)
                                             listState.value = null
                                             addState.value = false
                                         }
@@ -151,17 +147,17 @@ internal fun BarScreen(
             LazyColumn(
                 contentPadding = PaddingValues(vertical = 64.dp),
             ) {
-                items(
-                    count = list.size,
-                    key = { list[it].id },
-                ) { index ->
-                    val item = list[index]
-                    ColumnText(
-                        text = "$index) date: \"${Date(item.date.inWholeMilliseconds)}\"",
-                        onClick = {
-                            deleteState.value = item.id
-                        },
-                    )
+                list.forEachIndexed { index, item ->
+                    item(
+                        key = item.id,
+                    ) {
+                        ColumnText(
+                            text = "$index) date: \"${Date(item.date.inWholeMilliseconds)}\"",
+                            onClick = {
+                                deleteState.value = item.id
+                            },
+                        )
+                    }
                 }
             }
         }

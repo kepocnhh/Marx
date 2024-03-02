@@ -5,5 +5,5 @@ import org.kepocnhh.marx.entity.Foo
 
 internal interface LocalDataProvider {
     val foo: MutableList<Foo>
-    var bar: List<Bar>
+    val bar: MutableList<Bar>
 }
