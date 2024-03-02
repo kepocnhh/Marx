@@ -25,12 +25,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import org.kepocnhh.marx.App
 import org.kepocnhh.marx.entity.Foo
-import org.kepocnhh.marx.util.MutableStorage
 import org.kepocnhh.marx.util.compose.BackHandler
 import org.kepocnhh.marx.util.compose.ColumnButton
 import org.kepocnhh.marx.util.compose.ColumnText
 import org.kepocnhh.marx.util.compose.RectButton
-import org.kepocnhh.marx.util.isEmpty
 import java.util.UUID
 
 @Composable
@@ -45,7 +43,7 @@ internal fun FooScreen(
         BackHandler(block = onBack)
         val addState = remember { mutableStateOf(false) }
         val deleteState = remember { mutableStateOf<UUID?>(null) }
-        val storageState = remember { mutableStateOf<MutableStorage<Foo>?>(null) }
+        val listState = remember { mutableStateOf<MutableList<Foo>?>(null) }
         val deleteId = deleteState.value
         if (deleteId != null) {
             Dialog(onDismissRequest = { deleteState.value = null }) {
@@ -61,10 +59,10 @@ internal fun FooScreen(
                         ColumnButton(
                             text = "Yes",
                             onClick = {
-                                App.ldp.foo.removeFirst {
+                                App.ldp.foo.removeIf {
                                     it.id == deleteId
                                 }
-                                storageState.value = null
+                                listState.value = null
                                 deleteState.value = null
                             },
                         )
@@ -101,7 +99,7 @@ internal fun FooScreen(
                                         text = valueState.value,
                                     )
                                     App.ldp.foo.add(item)
-                                    storageState.value = null
+                                    listState.value = null
                                     addState.value = false
                                 }
                             },
@@ -110,13 +108,13 @@ internal fun FooScreen(
                 }
             }
         }
-        LaunchedEffect(storageState.value) {
-            if (storageState.value == null) {
-                storageState.value = App.ldp.foo
+        LaunchedEffect(listState.value) {
+            if (listState.value == null) {
+                listState.value = App.ldp.foo
             }
         }
-        val storage = storageState.value
-        if (storage == null || storage.isEmpty()) {
+        val list: List<Foo>? = listState.value
+        if (list.isNullOrEmpty()) {
             BasicText(
                 modifier = Modifier
                     .align(Alignment.Center),
@@ -130,7 +128,7 @@ internal fun FooScreen(
             LazyColumn(
                 contentPadding = PaddingValues(vertical = 64.dp),
             ) {
-                storage.forEachIndexed { index, item ->
+                list.forEachIndexed { index, item ->
                     item(
                         key = item.id,
                     ) {
