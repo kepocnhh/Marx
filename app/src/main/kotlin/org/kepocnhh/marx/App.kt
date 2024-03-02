@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import org.kepocnhh.marx.entity.Bar
 import org.kepocnhh.marx.entity.Foo
+import org.kepocnhh.marx.provider.FinalLocalDataProvider
 import org.kepocnhh.marx.provider.LocalDataProvider
 import org.kepocnhh.marx.util.compose.LocalOnBackPressedDispatcher
 import java.util.UUID
@@ -28,23 +29,11 @@ internal class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        // todo
+        _ldp = FinalLocalDataProvider(this)
     }
 
-    private class MockLocalDataProvider(
-        override var foo: List<Foo>,
-        override var bar: List<Bar>,
-    ) : LocalDataProvider // todo
-
     companion object {
-        val ldp: LocalDataProvider = MockLocalDataProvider(
-            foo = emptyList(),
-            bar = (0..20).map { number ->
-                Bar(
-                    id = UUID.randomUUID(),
-                    date = System.currentTimeMillis().milliseconds + number.hours,
-                )
-            }
-        ) // todo
+        private var _ldp: LocalDataProvider? = null
+        val ldp: LocalDataProvider get() = checkNotNull(_ldp)
     }
 }
