@@ -46,7 +46,7 @@ internal class FinalLocalDataProvider(
         }
 
     companion object {
-        private const val Version = 2
+        private const val Version = 4
 
         private fun JSONObject.toBar(): Bar {
             return Bar(
@@ -95,12 +95,14 @@ internal class FinalLocalDataProvider(
             )
         }
 
-        private fun SharedPreferences.getSupported(): Map<String, String> {
-            val json = getString("supported", null) ?: return emptyMap()
-            val obj = JSONObject(json)
-            return obj.keys().asSequence().map { key ->
-                key to obj.getString(key)
-            }.toMap()
+        private fun SharedPreferences.getSupported(): Set<String> {
+            val json = getString("supported", null) ?: return emptySet()
+            val array = JSONArray(json)
+            val result = mutableSetOf<String>()
+            for (i in 0 until array.length()) {
+                result.add(array.getString(i))
+            }
+            return result
         }
 
         private inline fun <reified T : Any> SharedPreferences.putList(
@@ -118,14 +120,20 @@ internal class FinalLocalDataProvider(
                     updated = updated,
                     hash = array.toString().hashCode().toString(),
                 )
-            val supported = getSupported().toMutableMap().also {
-                it[listMeta.id.toString()] = listMeta.hash
-            }.toMap()
+            val supported = getSupported().toMutableSet().also {
+                it.add(type.name)
+            }
             println("supported: $supported") // todo
-            val hash = supported.toList().sortedBy { (id, _) ->
-                id
-            }.joinToString(separator = "") { (_, hash) ->
-                hash
+            val hash = supported.map { name ->
+                if (name == type.name) {
+                    listMeta
+                } else {
+                    getMetaOrCreate(Class.forName(name))
+                }
+            }.sortedBy {
+                it.id
+            }.joinToString(separator = "") {
+                it.hash
             }.hashCode().toString()
             val meta = getMetaOrCreate(Meta::class.java)
                 .copy(
@@ -135,7 +143,7 @@ internal class FinalLocalDataProvider(
             println("meta:${type.name}: $listMeta") // todo
             println("meta: $meta") // todo
             edit()
-                .putString("supported", JSONObject(supported).toString())
+                .putString("supported", JSONArray(supported).toString())
                 .putString("list:${type.name}", array.toString())
                 .putString("meta:${type.name}", listMeta.toJSONObject().toString())
                 .putString("meta:${Meta::class.java.name}", meta.toJSONObject().toString())
