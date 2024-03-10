@@ -7,6 +7,8 @@ import org.json.JSONObject
 import org.kepocnhh.marx.entity.Bar
 import org.kepocnhh.marx.entity.Foo
 import org.kepocnhh.marx.entity.Meta
+import java.math.BigInteger
+import java.security.MessageDigest
 import java.util.Date
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
@@ -46,7 +48,13 @@ internal class FinalLocalDataProvider(
         }
 
     companion object {
-        private const val Version = 4
+        private const val Version = 5
+        private val md = MessageDigest.getInstance("SHA-256")
+
+        private fun sha256(decoded: String): String {
+            val bytes = md.digest(decoded.toByteArray())
+            return BigInteger(1, bytes).toString(16)
+        }
 
         private fun JSONObject.toBar(): Bar {
             return Bar(
@@ -118,7 +126,7 @@ internal class FinalLocalDataProvider(
             val listMeta = getMetaOrCreate(type)
                 .copy(
                     updated = updated,
-                    hash = array.toString().hashCode().toString(),
+                    hash = sha256(array.toString()),
                 )
             val supported = getSupported().toMutableSet().also {
                 it.add(type.name)
@@ -134,7 +142,7 @@ internal class FinalLocalDataProvider(
                 it.id
             }.joinToString(separator = "") {
                 it.hash
-            }.hashCode().toString()
+            }.let(::sha256)
             val meta = getMetaOrCreate(Meta::class.java)
                 .copy(
                     updated = updated,
