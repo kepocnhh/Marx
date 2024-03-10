@@ -31,6 +31,7 @@ import org.kepocnhh.marx.util.compose.ColumnText
 import org.kepocnhh.marx.util.compose.RectButton
 import java.util.Date
 import java.util.UUID
+import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
@@ -61,7 +62,9 @@ internal fun BarScreen(
                         ColumnButton(
                             text = "Yes",
                             onClick = {
-                                App.ldp.bar.removeIf { it.id == deleteId }
+                                App.ldp.bar = App.ldp.bar.toMutableList().also { list ->
+                                    list.removeIf { it.id == deleteId }
+                                }
                                 listState.value = null
                                 deleteState.value = null
                             },
@@ -93,33 +96,18 @@ internal fun BarScreen(
                             text = "Add",
                             onClick = {
                                 val text = valueState.value
-                                val year = try {
-                                    text.slice(0..3).toInt()
-                                } catch (_: Throwable) {
-                                    null
-                                }
-                                val month = try {
-                                    text.slice(4..5).toInt()
-                                } catch (_: Throwable) {
-                                    null
-                                }
-                                val day = try {
-                                    text.slice(6..7).toInt()
-                                } catch (_: Throwable) {
-                                    null
-                                }
-                                if (year != null && year > 0) {
-                                    if (month != null && month > 0) {
-                                        if (day != null && day > 0) {
-                                            val item = Bar(
-                                                id = UUID.randomUUID(),
-                                                date = Date(year - 1900, month - 1, day).time.milliseconds,
-                                            )
-                                            App.ldp.bar.add(item)
-                                            listState.value = null
-                                            addState.value = false
-                                        }
+                                val count = text.toIntOrNull()
+                                if (count != null) {
+                                    val item = Bar(
+                                        id = UUID.randomUUID(),
+                                        created = System.currentTimeMillis().milliseconds,
+                                        count = count,
+                                    )
+                                    App.ldp.bar = App.ldp.bar.toMutableList().also {
+                                        it.add(item)
                                     }
+                                    listState.value = null
+                                    addState.value = false
                                 }
                             },
                         )
@@ -152,7 +140,7 @@ internal fun BarScreen(
                         key = item.id,
                     ) {
                         ColumnText(
-                            text = "$index) date: \"${Date(item.date.inWholeMilliseconds)}\"",
+                            text = "$index) id: ${item.id}\ncount: ${item.count}\ncreated: \"${Date(item.created.inWholeMilliseconds)}\"",
                             onClick = {
                                 deleteState.value = item.id
                             },

@@ -29,7 +29,9 @@ import org.kepocnhh.marx.util.compose.BackHandler
 import org.kepocnhh.marx.util.compose.ColumnButton
 import org.kepocnhh.marx.util.compose.ColumnText
 import org.kepocnhh.marx.util.compose.RectButton
+import java.util.Date
 import java.util.UUID
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 internal fun FooScreen(
@@ -43,7 +45,7 @@ internal fun FooScreen(
         BackHandler(block = onBack)
         val addState = remember { mutableStateOf(false) }
         val deleteState = remember { mutableStateOf<UUID?>(null) }
-        val listState = remember { mutableStateOf<MutableList<Foo>?>(null) }
+        val listState = remember { mutableStateOf<List<Foo>?>(null) }
         val deleteId = deleteState.value
         if (deleteId != null) {
             Dialog(onDismissRequest = { deleteState.value = null }) {
@@ -59,8 +61,10 @@ internal fun FooScreen(
                         ColumnButton(
                             text = "Yes",
                             onClick = {
-                                App.ldp.foo.removeIf {
-                                    it.id == deleteId
+                                App.ldp.foo = App.ldp.foo.toMutableList().also { list ->
+                                    list.removeIf {
+                                        it.id == deleteId
+                                    }
                                 }
                                 listState.value = null
                                 deleteState.value = null
@@ -96,9 +100,12 @@ internal fun FooScreen(
                                 if (text.isNotBlank()) {
                                     val item = Foo(
                                         id = UUID.randomUUID(),
+                                        created = System.currentTimeMillis().milliseconds,
                                         text = valueState.value,
                                     )
-                                    App.ldp.foo.add(item)
+                                    App.ldp.foo = App.ldp.foo.toMutableList().also {
+                                        it.add(item)
+                                    }
                                     listState.value = null
                                     addState.value = false
                                 }
@@ -133,7 +140,7 @@ internal fun FooScreen(
                         key = item.id,
                     ) {
                         ColumnText(
-                            text = "$index) text: \"${item.text}\"",
+                            text = "$index) id: ${item.id}\ntext: \"${item.text}\"\ncreated: \"${Date(item.created.inWholeMilliseconds)}\"",
                             onClick = {
                                 deleteState.value = item.id
                             },

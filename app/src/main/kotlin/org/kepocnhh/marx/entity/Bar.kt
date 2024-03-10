@@ -5,5 +5,6 @@ import kotlin.time.Duration
 
 internal data class Bar(
     val id: UUID,
-    val date: Duration,
+    val created: Duration,
+    val count: Int,
 )
