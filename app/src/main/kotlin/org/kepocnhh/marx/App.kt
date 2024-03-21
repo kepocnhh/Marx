@@ -7,6 +7,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import kotlinx.coroutines.Dispatchers
+import org.kepocnhh.marx.entity.Meta
+import org.kepocnhh.marx.entity.remote.ItemsSyncResponse
 import org.kepocnhh.marx.module.app.Injection
 import org.kepocnhh.marx.provider.Contexts
 import org.kepocnhh.marx.provider.FinalLocals
@@ -33,7 +35,11 @@ internal class App : Application() {
         }
     }
 
-    private object MockRemotes : Remotes {}
+    private object MockRemotes : Remotes {
+        override fun itemsSync(meta: Meta): ItemsSyncResponse {
+            TODO("Not yet implemented: itemsSync")
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
