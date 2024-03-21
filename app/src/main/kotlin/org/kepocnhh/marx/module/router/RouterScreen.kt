@@ -11,12 +11,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import org.kepocnhh.marx.module.bar.BarScreen
 import org.kepocnhh.marx.module.foo.FooScreen
 import org.kepocnhh.marx.util.compose.ColumnButton
 
 private object RouterScreen {
-    enum class Type { FOO, BAR }
+    enum class Type { FOO }
     data class State(val type: Type?)
 }
 
@@ -36,13 +35,6 @@ internal fun RouterScreen() {
                     },
                 )
             }
-            RouterScreen.Type.BAR -> {
-                BarScreen(
-                    onBack = {
-                        state.value = state.value.copy(type = null)
-                    },
-                )
-            }
             null -> {
                 Column(
                     modifier = Modifier
@@ -53,12 +45,6 @@ internal fun RouterScreen() {
                         text = "foo",
                         onClick = {
                             state.value = state.value.copy(type = RouterScreen.Type.FOO)
-                        },
-                    )
-                    ColumnButton(
-                        text = "bar",
-                        onClick = {
-                            state.value = state.value.copy(type = RouterScreen.Type.BAR)
                         },
                     )
                 }

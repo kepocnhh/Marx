@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.SharedPreferences
 import org.json.JSONArray
 import org.json.JSONObject
-import org.kepocnhh.marx.entity.Bar
 import org.kepocnhh.marx.entity.Foo
 import org.kepocnhh.marx.entity.Meta
 import java.math.BigInteger
@@ -13,20 +12,20 @@ import java.util.Date
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
 
-internal class FinalLocalDataProvider(
+internal class FinalLocals(
     context: Context,
-) : LocalDataProvider {
+) : Locals {
     private val preferences = context.getSharedPreferences(context.packageName, Context.MODE_PRIVATE)
 
     init {
         val version = preferences.getInt("version", -1)
         if (version < 0) {
-            preferences.edit().putInt("version", Version).commit()
-        } else if (version < Version) {
+            preferences.edit().putInt("version", VERSION).commit()
+        } else if (version < VERSION) {
             preferences
                 .edit()
                 .clear()
-                .putInt("version", Version)
+                .putInt("version", VERSION)
                 .commit()
         }
     }
@@ -39,36 +38,13 @@ internal class FinalLocalDataProvider(
             preferences.putList(value) { it.toJSONObject() }
         }
 
-    override var bar: List<Bar>
-        get() {
-            return preferences.getList { it.toBar() }
-        }
-        set(value) {
-            preferences.putList(value) { it.toJSONObject() }
-        }
-
     companion object {
-        private const val Version = 5
+        private const val VERSION = 6
         private val md = MessageDigest.getInstance("SHA-256")
 
         private fun sha256(decoded: String): String {
             val bytes = md.digest(decoded.toByteArray())
             return BigInteger(1, bytes).toString(16)
-        }
-
-        private fun JSONObject.toBar(): Bar {
-            return Bar(
-                id = UUID.fromString(getString("id")),
-                count = getInt("count"),
-                created = getLong("created").milliseconds,
-            )
-        }
-
-        private fun Bar.toJSONObject(): JSONObject {
-            return JSONObject()
-                .put("id", id.toString())
-                .put("count", count)
-                .put("created", created.inWholeMilliseconds)
         }
 
         private fun JSONObject.toFoo(): Foo {

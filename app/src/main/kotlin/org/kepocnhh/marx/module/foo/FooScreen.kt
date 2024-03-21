@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -14,6 +16,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -34,18 +37,17 @@ import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
-internal fun FooScreen(
-    onBack: () -> Unit,
+private fun FooScreen(
+    items: List<Foo>,
 ) {
+    val logics = App.logics<FooLogics>()
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White),
     ) {
-        BackHandler(block = onBack)
         val addState = remember { mutableStateOf(false) }
         val deleteState = remember { mutableStateOf<UUID?>(null) }
-        val listState = remember { mutableStateOf<List<Foo>?>(null) }
         val deleteId = deleteState.value
         if (deleteId != null) {
             Dialog(onDismissRequest = { deleteState.value = null }) {
@@ -61,12 +63,7 @@ internal fun FooScreen(
                         ColumnButton(
                             text = "Yes",
                             onClick = {
-                                App.ldp.foo = App.ldp.foo.toMutableList().also { list ->
-                                    list.removeIf {
-                                        it.id == deleteId
-                                    }
-                                }
-                                listState.value = null
+                                logics.deleteItem(id = deleteId)
                                 deleteState.value = null
                             },
                         )
@@ -98,15 +95,7 @@ internal fun FooScreen(
                             onClick = {
                                 val text = valueState.value
                                 if (text.isNotBlank()) {
-                                    val item = Foo(
-                                        id = UUID.randomUUID(),
-                                        created = System.currentTimeMillis().milliseconds,
-                                        text = valueState.value,
-                                    )
-                                    App.ldp.foo = App.ldp.foo.toMutableList().also {
-                                        it.add(item)
-                                    }
-                                    listState.value = null
+                                    logics.addItem(text)
                                     addState.value = false
                                 }
                             },
@@ -115,13 +104,7 @@ internal fun FooScreen(
                 }
             }
         }
-        LaunchedEffect(listState.value) {
-            if (listState.value == null) {
-                listState.value = App.ldp.foo
-            }
-        }
-        val list: List<Foo>? = listState.value
-        if (list.isNullOrEmpty()) {
+        if (items.isEmpty()) {
             BasicText(
                 modifier = Modifier
                     .align(Alignment.Center),
@@ -135,7 +118,7 @@ internal fun FooScreen(
             LazyColumn(
                 contentPadding = PaddingValues(vertical = 64.dp),
             ) {
-                list.forEachIndexed { index, item ->
+                items.forEachIndexed { index, item ->
                     item(
                         key = item.id,
                     ) {
@@ -149,11 +132,22 @@ internal fun FooScreen(
                 }
             }
         }
-        Box(
+        Row(
             modifier = Modifier
-                .padding(end = 32.dp, bottom = 64.dp)
-                .align(Alignment.BottomEnd),
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 32.dp,
+                    vertical = 64.dp,
+                )
+                .align(Alignment.BottomCenter),
         ) {
+            RectButton(
+                text = "sync",
+                onClick = {
+                    addState.value = true
+                },
+            )
+            Spacer(modifier = Modifier.weight(1f))
             RectButton(
                 text = "+",
                 onClick = {
@@ -161,5 +155,22 @@ internal fun FooScreen(
                 },
             )
         }
+    }
+}
+
+@Composable
+internal fun FooScreen(
+    onBack: () -> Unit,
+) {
+    BackHandler(block = onBack)
+    val logics = App.logics<FooLogics>()
+    val items = logics.state.collectAsState().value?.items
+    LaunchedEffect(Unit) {
+        if (items == null) {
+            logics.requestItems()
+        }
+    }
+    if (items != null) {
+        FooScreen(items = items)
     }
 }

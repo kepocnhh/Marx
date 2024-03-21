@@ -4,14 +4,20 @@ import android.app.Application
 import androidx.activity.OnBackPressedDispatcher
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import org.kepocnhh.marx.entity.Bar
-import org.kepocnhh.marx.entity.Foo
-import org.kepocnhh.marx.provider.FinalLocalDataProvider
-import org.kepocnhh.marx.provider.LocalDataProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
+import kotlinx.coroutines.Dispatchers
+import org.kepocnhh.marx.module.app.Injection
+import org.kepocnhh.marx.provider.Contexts
+import org.kepocnhh.marx.provider.FinalLocals
+import org.kepocnhh.marx.provider.Remotes
 import org.kepocnhh.marx.util.compose.LocalOnBackPressedDispatcher
-import java.util.UUID
-import kotlin.time.Duration.Companion.hours
-import kotlin.time.Duration.Companion.milliseconds
+import sp.kx.logics.Logics
+import sp.kx.logics.LogicsFactory
+import sp.kx.logics.LogicsProvider
+import sp.kx.logics.contains
+import sp.kx.logics.get
+import sp.kx.logics.remove
 
 internal class App : Application() {
     object Theme {
@@ -27,13 +33,49 @@ internal class App : Application() {
         }
     }
 
+    private object MockRemotes : Remotes {}
+
     override fun onCreate() {
         super.onCreate()
-        _ldp = FinalLocalDataProvider(this)
+        _injection = Injection(
+            contexts = Contexts(
+                main = Dispatchers.Main,
+                default = Dispatchers.Default,
+            ),
+            locals = FinalLocals(this),
+            remotes = MockRemotes,
+        )
     }
 
     companion object {
-        private var _ldp: LocalDataProvider? = null
-        val ldp: LocalDataProvider get() = checkNotNull(_ldp)
+        private var _injection: Injection? = null
+
+        private val _logicsProvider = LogicsProvider(
+            factory = object : LogicsFactory {
+                override fun <T : Logics> create(type: Class<T>): T {
+                    val injection = checkNotNull(_injection) { "No injection!" }
+                    return type
+                        .getConstructor(Injection::class.java)
+                        .newInstance(injection)
+                }
+            },
+        )
+
+        @Composable
+        inline fun <reified T : Logics> logics(label: String = T::class.java.name): T {
+            val (contains, logic) = synchronized(App::class.java) {
+                remember { _logicsProvider.contains<T>(label = label) } to _logicsProvider.get<T>(label = label)
+            }
+            DisposableEffect(Unit) {
+                onDispose {
+                    synchronized(App::class.java) {
+                        if (!contains) {
+                            _logicsProvider.remove<T>(label = label)
+                        }
+                    }
+                }
+            }
+            return logic
+        }
     }
 }
