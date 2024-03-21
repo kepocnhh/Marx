@@ -108,5 +108,5 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.compose.foundation:foundation:${Version.Android.compose}")
     implementation("com.github.kepocnhh:Logics:0.1.3-SNAPSHOT")
-    implementation("com.squareup.okhttp:okhttp:2.7.5")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

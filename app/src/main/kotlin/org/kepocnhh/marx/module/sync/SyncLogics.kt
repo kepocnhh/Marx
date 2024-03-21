@@ -28,11 +28,14 @@ internal class SyncLogics(
     private val _broadcast = MutableSharedFlow<Broadcast>()
     val broadcast = _broadcast.asSharedFlow()
 
+    private val logger = injection.loggers.create("[Sync]")
+
     private suspend fun itemsSync(result: Result<ItemsSyncResponse>) {
         val error = withContext(injection.contexts.default) {
             result.exceptionOrNull()
         }
         if (error != null) {
+            logger.debug("items sync error: $error")
             _broadcast.emit(Broadcast.OnError(error))
             return
         }
@@ -45,10 +48,12 @@ internal class SyncLogics(
                 return
             }
             is ItemsSyncResponse.UploadSession -> TODO()
+            is ItemsSyncResponse.Download -> TODO()
         }
     }
 
     fun itemsSync(meta: Meta) = launch {
+        logger.debug("items sync...")
         _state.emit(State(loading = true))
         val result = withContext(injection.contexts.default) {
             runCatching {

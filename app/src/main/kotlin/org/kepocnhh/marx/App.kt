@@ -12,6 +12,8 @@ import org.kepocnhh.marx.entity.remote.ItemsSyncResponse
 import org.kepocnhh.marx.module.app.Injection
 import org.kepocnhh.marx.provider.Contexts
 import org.kepocnhh.marx.provider.FinalLocals
+import org.kepocnhh.marx.provider.FinalLoggers
+import org.kepocnhh.marx.provider.FinalRemotes
 import org.kepocnhh.marx.provider.Remotes
 import org.kepocnhh.marx.util.compose.LocalOnBackPressedDispatcher
 import sp.kx.logics.Logics
@@ -35,12 +37,6 @@ internal class App : Application() {
         }
     }
 
-    private object MockRemotes : Remotes {
-        override fun itemsSync(meta: Meta): ItemsSyncResponse {
-            TODO("Not yet implemented: itemsSync")
-        }
-    }
-
     override fun onCreate() {
         super.onCreate()
         _injection = Injection(
@@ -48,8 +44,9 @@ internal class App : Application() {
                 main = Dispatchers.Main,
                 default = Dispatchers.Default,
             ),
+            loggers = FinalLoggers,
             locals = FinalLocals(this),
-            remotes = MockRemotes,
+            remotes = FinalRemotes(),
         )
     }
 

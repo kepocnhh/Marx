@@ -4,8 +4,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import org.kepocnhh.marx.entity.Foo
+import org.kepocnhh.marx.entity.Meta
 import org.kepocnhh.marx.module.app.Injection
 import sp.kx.logics.Logics
+import java.util.Arrays
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -13,17 +15,45 @@ internal class FooLogics(
     private val injection: Injection,
 ) : Logics(injection.contexts.main) {
     data class State(
+        val meta: Meta,
         val items: List<Foo>,
     )
 
     private val _state = MutableStateFlow<State?>(null)
     val state = _state.asStateFlow()
 
+    private fun <T : Any> List<T>.toByteArray(): ByteArray {
+        return ByteArray(1) { index ->
+            (size + index).toByte()
+        }
+    }
+
+    private fun Meta.update(body: ByteArray): Meta {
+        return copy(
+            updated = System.currentTimeMillis().milliseconds,
+            hash = body.contentHashCode().toString(),
+        )
+    }
+
     fun requestItems() = launch {
         val items = withContext(injection.contexts.default) {
             injection.locals.foo
         }
-        _state.emit(State(items))
+        val meta = withContext(injection.contexts.default) {
+            injection.locals.metas.firstOrNull {
+                it.id == Foo.MetaId
+            } ?: System.currentTimeMillis().milliseconds.let { created ->
+                val meta = Meta(
+                    id = Foo.MetaId,
+                    created = created,
+                    updated = created,
+                    hash = "",
+                )
+                injection.locals.metas += meta
+                meta
+            }
+        }
+        _state.emit(State(meta, items))
     }
 
     fun deleteItem(id: UUID) = launch {
@@ -37,7 +67,12 @@ internal class FooLogics(
         val items = withContext(injection.contexts.default) {
             injection.locals.foo
         }
-        _state.emit(State(items))
+        val meta = withContext(injection.contexts.default) {
+            injection.locals.metas.firstOrNull {
+                it.id == Foo.MetaId
+            }?.update(body = items.toByteArray()) ?: TODO()
+        }
+        _state.emit(State(meta, items))
     }
 
     fun addItem(text: String) = launch {
@@ -56,6 +91,11 @@ internal class FooLogics(
         val items = withContext(injection.contexts.default) {
             injection.locals.foo
         }
-        _state.emit(State(items))
+        val meta = withContext(injection.contexts.default) {
+            injection.locals.metas.firstOrNull {
+                it.id == Foo.MetaId
+            }?.update(body = items.toByteArray()) ?: TODO()
+        }
+        _state.emit(State(meta, items))
     }
 }

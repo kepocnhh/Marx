@@ -26,8 +26,11 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import kotlinx.coroutines.flow.collect
 import org.kepocnhh.marx.App
 import org.kepocnhh.marx.entity.Foo
+import org.kepocnhh.marx.entity.Meta
+import org.kepocnhh.marx.module.sync.SyncLogics
 import org.kepocnhh.marx.util.compose.BackHandler
 import org.kepocnhh.marx.util.compose.ColumnButton
 import org.kepocnhh.marx.util.compose.ColumnText
@@ -38,9 +41,24 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 private fun FooScreen(
+    meta: Meta,
     items: List<Foo>,
 ) {
     val logics = App.logics<FooLogics>()
+    val syncLogics = App.logics<SyncLogics>()
+    val syncState = syncLogics.state.collectAsState().value
+    LaunchedEffect(Unit) {
+        syncLogics.broadcast.collect { broadcast ->
+            when (broadcast) {
+                is SyncLogics.Broadcast.OnError -> {
+                    // todo
+                }
+                is SyncLogics.Broadcast.OnSuccess -> {
+                    // todo
+                }
+            }
+        }
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -144,7 +162,7 @@ private fun FooScreen(
             RectButton(
                 text = "sync",
                 onClick = {
-                    addState.value = true
+                    syncLogics.itemsSync(meta)
                 },
             )
             Spacer(modifier = Modifier.weight(1f))
@@ -153,6 +171,12 @@ private fun FooScreen(
                 onClick = {
                     addState.value = true
                 },
+            )
+        }
+        if (syncState.loading) {
+            BasicText(
+                modifier = Modifier.align(Alignment.Center),
+                text = "loading...",
             )
         }
     }
@@ -164,13 +188,16 @@ internal fun FooScreen(
 ) {
     BackHandler(block = onBack)
     val logics = App.logics<FooLogics>()
-    val items = logics.state.collectAsState().value?.items
+    val state = logics.state.collectAsState().value
     LaunchedEffect(Unit) {
-        if (items == null) {
+        if (state == null) {
             logics.requestItems()
         }
     }
-    if (items != null) {
-        FooScreen(items = items)
+    if (state != null) {
+        FooScreen(
+            meta = state.meta,
+            items = state.items,
+        )
     }
 }

@@ -38,8 +38,16 @@ internal class FinalLocals(
             preferences.putList(value) { it.toJSONObject() }
         }
 
+    override var metas: List<Meta>
+        get() {
+            return preferences.getList { it.toMeta() }
+        }
+        set(value) {
+            preferences.putList(value) { it.toJSONObject() }
+        }
+
     companion object {
-        private const val VERSION = 6
+        private const val VERSION = 7
         private val md = MessageDigest.getInstance("SHA-256")
 
         private fun sha256(decoded: String): String {
@@ -90,6 +98,20 @@ internal class FinalLocals(
         }
 
         private inline fun <reified T : Any> SharedPreferences.putList(
+            items: List<T>,
+            transform: (T) -> JSONObject,
+        ) {
+            val type = T::class.java
+            val array = JSONArray()
+            items.forEach {
+                array.put(transform(it))
+            }
+            edit()
+                .putString("list:${type.name}", array.toString())
+                .commit()
+        }
+
+        private inline fun <reified T : Any> SharedPreferences.putListOld(
             items: List<T>,
             transform: (T) -> JSONObject,
         ) {
