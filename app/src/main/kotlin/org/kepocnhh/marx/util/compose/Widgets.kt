@@ -41,12 +41,13 @@ internal fun ColumnButton(
 @Composable
 internal fun RectButton(
     text: String,
+    enabled: Boolean,
     onClick: () -> Unit,
 ) {
     Box(
         modifier = Modifier
             .size(64.dp)
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .background(Color.Black),
     ) {
         BasicText(
@@ -81,6 +82,7 @@ internal fun ColumnText(
 
 @Composable
 internal fun ColumnText(
+    enabled: Boolean,
     text: String,
     onClick: () -> Unit,
 ) {
@@ -88,7 +90,7 @@ internal fun ColumnText(
         modifier = Modifier
             .fillMaxWidth()
             .height(64.dp)
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .wrapContentHeight(),
         text = text,
         style = TextStyle(

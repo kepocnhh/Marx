@@ -26,7 +26,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import kotlinx.coroutines.flow.collect
 import org.kepocnhh.marx.App
 import org.kepocnhh.marx.entity.Foo
 import org.kepocnhh.marx.entity.Meta
@@ -37,7 +36,6 @@ import org.kepocnhh.marx.util.compose.ColumnText
 import org.kepocnhh.marx.util.compose.RectButton
 import java.util.Date
 import java.util.UUID
-import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 private fun FooScreen(
@@ -141,6 +139,7 @@ private fun FooScreen(
                         key = item.id,
                     ) {
                         ColumnText(
+                            enabled = !syncState.loading,
                             text = "$index) id: ${item.id}\ntext: \"${item.text}\"\ncreated: \"${Date(item.created.inWholeMilliseconds)}\"",
                             onClick = {
                                 deleteState.value = item.id
@@ -160,6 +159,7 @@ private fun FooScreen(
                 .align(Alignment.BottomCenter),
         ) {
             RectButton(
+                enabled = !syncState.loading,
                 text = "sync",
                 onClick = {
                     syncLogics.itemsSync(meta)
@@ -167,6 +167,7 @@ private fun FooScreen(
             )
             Spacer(modifier = Modifier.weight(1f))
             RectButton(
+                enabled = !syncState.loading,
                 text = "+",
                 onClick = {
                     addState.value = true
