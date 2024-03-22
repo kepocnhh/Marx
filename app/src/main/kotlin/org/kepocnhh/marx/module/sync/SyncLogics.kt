@@ -8,7 +8,10 @@ import kotlinx.coroutines.withContext
 import org.kepocnhh.marx.entity.Meta
 import org.kepocnhh.marx.entity.remote.ItemsSyncResponse
 import org.kepocnhh.marx.module.app.Injection
+import org.kepocnhh.marx.util.Single
+import org.kepocnhh.marx.util.withCatching
 import sp.kx.logics.Logics
+import java.util.UUID
 
 internal class SyncLogics(
     private val injection: Injection,
@@ -30,37 +33,54 @@ internal class SyncLogics(
 
     private val logger = injection.loggers.create("[Sync]")
 
-    private suspend fun itemsSync(result: Result<ItemsSyncResponse>) {
-        val error = withContext(injection.contexts.default) {
-            result.exceptionOrNull()
-        }
-        if (error != null) {
-            logger.debug("items sync error: $error")
-            _broadcast.emit(Broadcast.OnError(error))
-            return
-        }
-        val response = withContext(injection.contexts.default) {
-            result.getOrNull() ?: TODO()
-        }
+    private suspend fun itemsSync(meta: Meta, response: ItemsSyncResponse) {
         when (response) {
+            is ItemsSyncResponse.Download -> TODO()
             ItemsSyncResponse.NotModified -> {
                 _broadcast.emit(Broadcast.OnSuccess(modified = false))
-                return
             }
-            is ItemsSyncResponse.UploadSession -> TODO()
-            is ItemsSyncResponse.Download -> TODO()
+            is ItemsSyncResponse.UploadSession -> {
+                val result = withCatching(injection.contexts.default) {
+                    injection.remotes.itemsUpload(
+                        sessionId = response.sessionId,
+                        bytes = injection.serializer.serialize(meta), // todo
+                    )
+                }
+                when (result) {
+                    is Single.Failure -> {
+                        logger.warning("items upload error: ${result.error}")
+                        _broadcast.emit(Broadcast.OnError(result.error))
+                    }
+                    is Single.Success -> {
+                        _broadcast.emit(Broadcast.OnSuccess(modified = false))
+                    }
+                }
+            }
         }
     }
 
-    fun itemsSync(meta: Meta) = launch {
-        logger.debug("items sync...")
-        _state.emit(State(loading = true))
-        val result = withContext(injection.contexts.default) {
-            runCatching {
-                injection.remotes.itemsSync(meta)
+    private suspend fun itemsSync(meta: Meta) {
+        val result = withCatching(injection.contexts.default) {
+            injection.remotes.itemsSync(meta)
+        }
+        when (result) {
+            is Single.Failure -> {
+                logger.warning("items sync error: ${result.error}")
+                _broadcast.emit(Broadcast.OnError(result.error))
+            }
+            is Single.Success -> {
+                itemsSync(meta, result.value)
             }
         }
-        itemsSync(result)
+    }
+
+    fun itemsSync(metaId: UUID) = launch {
+        logger.debug("items sync...")
+        _state.emit(State(loading = true))
+        val meta = withContext(injection.contexts.default) {
+            injection.locals.metas.firstOrNull { it.id == metaId } ?: TODO()
+        }
+        itemsSync(meta = meta)
         _state.emit(State(loading = false))
     }
 }

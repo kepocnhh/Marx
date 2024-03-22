@@ -14,7 +14,9 @@ import org.kepocnhh.marx.provider.Contexts
 import org.kepocnhh.marx.provider.FinalLocals
 import org.kepocnhh.marx.provider.FinalLoggers
 import org.kepocnhh.marx.provider.FinalRemotes
+import org.kepocnhh.marx.provider.FinalSerializer
 import org.kepocnhh.marx.provider.Remotes
+import org.kepocnhh.marx.provider.Serializer
 import org.kepocnhh.marx.util.compose.LocalOnBackPressedDispatcher
 import sp.kx.logics.Logics
 import sp.kx.logics.LogicsFactory
@@ -39,14 +41,19 @@ internal class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        val serializer: Serializer = FinalSerializer()
         _injection = Injection(
             contexts = Contexts(
                 main = Dispatchers.Main,
                 default = Dispatchers.Default,
             ),
             loggers = FinalLoggers,
-            locals = FinalLocals(this),
-            remotes = FinalRemotes(),
+            locals = FinalLocals(
+                preferences = getSharedPreferences(packageName, MODE_PRIVATE),
+                serializer = serializer,
+            ),
+            remotes = FinalRemotes(serializer),
+            serializer = serializer,
         )
     }
 

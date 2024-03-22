@@ -162,7 +162,7 @@ private fun FooScreen(
                 enabled = !syncState.loading,
                 text = "sync",
                 onClick = {
-                    syncLogics.itemsSync(meta)
+                    syncLogics.itemsSync(metaId = meta.id)
                 },
             )
             Spacer(modifier = Modifier.weight(1f))
