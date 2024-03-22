@@ -52,7 +52,9 @@ private fun FooScreen(
                     // todo
                 }
                 is SyncLogics.Broadcast.OnSuccess -> {
-                    // todo
+                    if (broadcast.modified) {
+                        logics.requestItems()
+                    }
                 }
             }
         }

@@ -8,8 +8,6 @@ import kotlinx.coroutines.withContext
 import org.kepocnhh.marx.entity.Meta
 import org.kepocnhh.marx.entity.remote.ItemsSyncResponse
 import org.kepocnhh.marx.module.app.Injection
-import org.kepocnhh.marx.util.Single
-import org.kepocnhh.marx.util.withCatching
 import sp.kx.logics.Logics
 import java.util.UUID
 
@@ -33,6 +31,25 @@ internal class SyncLogics(
 
     private val logger = injection.loggers.create("[Sync]")
 
+    private suspend fun itemsUpload(meta: Meta, sessionId: UUID) {
+        withContext(injection.contexts.default) {
+            runCatching {
+                injection.remotes.itemsUpload(
+                    sessionId = sessionId,
+                    bytes = injection.serializer.serialize(meta), // todo
+                )
+            }
+        }.fold(
+            onSuccess = {
+                _broadcast.emit(Broadcast.OnSuccess(modified = false))
+            },
+            onFailure = { error ->
+                logger.warning("items upload error: $error")
+                _broadcast.emit(Broadcast.OnError(error))
+            },
+        )
+    }
+
     private suspend fun itemsSync(meta: Meta, response: ItemsSyncResponse) {
         when (response) {
             is ItemsSyncResponse.Download -> TODO()
@@ -40,38 +57,25 @@ internal class SyncLogics(
                 _broadcast.emit(Broadcast.OnSuccess(modified = false))
             }
             is ItemsSyncResponse.UploadSession -> {
-                val result = withCatching(injection.contexts.default) {
-                    injection.remotes.itemsUpload(
-                        sessionId = response.sessionId,
-                        bytes = injection.serializer.serialize(meta), // todo
-                    )
-                }
-                when (result) {
-                    is Single.Failure -> {
-                        logger.warning("items upload error: ${result.error}")
-                        _broadcast.emit(Broadcast.OnError(result.error))
-                    }
-                    is Single.Success -> {
-                        _broadcast.emit(Broadcast.OnSuccess(modified = false))
-                    }
-                }
+                itemsUpload(meta, sessionId = response.sessionId)
             }
         }
     }
 
     private suspend fun itemsSync(meta: Meta) {
-        val result = withCatching(injection.contexts.default) {
-            injection.remotes.itemsSync(meta)
-        }
-        when (result) {
-            is Single.Failure -> {
-                logger.warning("items sync error: ${result.error}")
-                _broadcast.emit(Broadcast.OnError(result.error))
+        withContext(injection.contexts.default) {
+            runCatching {
+                injection.remotes.itemsSync(meta)
             }
-            is Single.Success -> {
-                itemsSync(meta, result.value)
-            }
-        }
+        }.fold(
+            onSuccess = { response ->
+                itemsSync(meta, response)
+            },
+            onFailure = { error ->
+                logger.warning("items sync error: $error")
+                _broadcast.emit(Broadcast.OnError(error))
+            },
+        )
     }
 
     fun itemsSync(metaId: UUID) = launch {
