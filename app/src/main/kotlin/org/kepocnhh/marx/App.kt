@@ -12,6 +12,7 @@ import org.kepocnhh.marx.provider.Contexts
 import org.kepocnhh.marx.provider.FinalLocals
 import org.kepocnhh.marx.provider.FinalLoggers
 import org.kepocnhh.marx.provider.FinalRemotes
+import org.kepocnhh.marx.provider.FinalSecurity
 import org.kepocnhh.marx.provider.FinalSerializer
 import org.kepocnhh.marx.provider.Serializer
 import org.kepocnhh.marx.util.compose.LocalOnBackPressedDispatcher
@@ -51,6 +52,7 @@ internal class App : Application() {
             ),
             remotes = FinalRemotes(serializer),
             serializer = serializer,
+            security = FinalSecurity(),
         )
     }
 

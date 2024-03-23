@@ -7,8 +7,9 @@ import org.kepocnhh.marx.entity.Foo
 import org.kepocnhh.marx.entity.Meta
 import org.kepocnhh.marx.module.app.Injection
 import sp.kx.logics.Logics
-import java.util.Arrays
+import java.math.BigInteger
 import java.util.UUID
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 internal class FooLogics(
@@ -22,17 +23,50 @@ internal class FooLogics(
     private val _state = MutableStateFlow<State?>(null)
     val state = _state.asStateFlow()
 
-    private fun <T : Any> List<T>.toByteArray(): ByteArray {
-        return ByteArray(1) { index ->
-            (size + index).toByte()
+    private operator fun <T> List<T>.set(predicate: (T) -> Boolean, value: T): List<T> {
+        val result = toMutableList()
+        for (i in result.indices) {
+            if (predicate(result[i])) {
+                result.removeAt(i)
+                result.add(value)
+                return result
+            }
         }
+        return result
     }
 
-    private fun Meta.update(body: ByteArray): Meta {
-        return copy(
-            updated = System.currentTimeMillis().milliseconds,
-            hash = body.contentHashCode().toString(),
+    private fun sha256(
+        id: UUID,
+        created: Duration,
+        updated: Duration,
+        bytes: ByteArray,
+    ): String {
+        val hash = StringBuilder()
+            .append(id)
+            .append(created.inWholeMilliseconds)
+            .append(updated.inWholeMilliseconds)
+            .toString()
+            .toByteArray()
+            .plus(bytes)
+            .let(injection.security::sha256)
+        return String.format("%064x", BigInteger(1, hash))
+    }
+
+    private fun updateMeta(id: UUID, bytes: ByteArray): Meta {
+        val oldMeta = injection.locals.metas.firstOrNull { it.id == id } ?: TODO()
+        val updated = System.currentTimeMillis().milliseconds
+        val sha256 = sha256(
+            id = id,
+            created = oldMeta.created,
+            updated = updated,
+            bytes = bytes,
         )
+        val newMeta = oldMeta.copy(
+            updated = updated,
+            hash = sha256,
+        )
+        injection.locals.metas[{it.id == id}] = newMeta
+        return newMeta
     }
 
     fun requestItems() = launch {
@@ -40,14 +74,21 @@ internal class FooLogics(
             injection.locals.foo
         }
         val meta = withContext(injection.contexts.default) {
+            val metaId = Foo.META_ID
             injection.locals.metas.firstOrNull {
-                it.id == Foo.META_ID
+                it.id == metaId
             } ?: System.currentTimeMillis().milliseconds.let { created ->
-                val meta = Meta(
-                    id = Foo.META_ID,
+                val sha256 = sha256(
+                    id = metaId,
                     created = created,
                     updated = created,
-                    hash = "",
+                    bytes = injection.serializer.foo.toByteArray(emptyList()),
+                )
+                val meta = Meta(
+                    id = metaId,
+                    created = created,
+                    updated = created,
+                    hash = sha256,
                 )
                 injection.locals.metas += meta
                 meta
@@ -56,45 +97,39 @@ internal class FooLogics(
         _state.emit(State(meta, items))
     }
 
-    fun deleteItem(id: UUID) = launch {
-        withContext(injection.contexts.default) {
-            injection.locals.foo = injection.locals.foo
-                .toMutableList()
-                .also { list ->
-                    list.removeIf { it.id == id }
-                }
+    private operator fun <T> List<T>.minus(predicate: (T) -> Boolean): List<T> {
+        val result = toMutableList()
+        for (i in result.indices) {
+            if (predicate(result[i])) {
+                result.removeAt(i)
+                return result
+            }
         }
+        return result
+    }
+
+    fun deleteItem(id: UUID) = launch {
         val items = withContext(injection.contexts.default) {
-            injection.locals.foo
+            injection.locals.foo - { it.id == id }
         }
         val meta = withContext(injection.contexts.default) {
-            injection.locals.metas.firstOrNull {
-                it.id == Foo.META_ID
-            }?.update(body = items.toByteArray()) ?: TODO()
+            injection.locals.foo = items
+            updateMeta(id = Foo.META_ID, bytes = injection.serializer.foo.toByteArray(items))
         }
         _state.emit(State(meta, items))
     }
 
     fun addItem(text: String) = launch {
-        withContext(injection.contexts.default) {
-            val item = Foo(
+        val items = withContext(injection.contexts.default) {
+            injection.locals.foo + Foo(
                 id = UUID.randomUUID(),
                 created = System.currentTimeMillis().milliseconds,
                 text = text,
             )
-            injection.locals.foo = injection.locals.foo
-                .toMutableList()
-                .also { list ->
-                    list.add(item)
-                }
-        }
-        val items = withContext(injection.contexts.default) {
-            injection.locals.foo
         }
         val meta = withContext(injection.contexts.default) {
-            injection.locals.metas.firstOrNull {
-                it.id == Foo.META_ID
-            }?.update(body = items.toByteArray()) ?: TODO()
+            injection.locals.foo = items
+            updateMeta(id = Foo.META_ID, bytes = injection.serializer.foo.toByteArray(items))
         }
         _state.emit(State(meta, items))
     }

@@ -34,6 +34,6 @@ internal class FinalLocals(
     }
 
     companion object {
-        private const val VERSION = 8
+        private const val VERSION = 9
     }
 }
