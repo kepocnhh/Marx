@@ -9,6 +9,7 @@ import org.kepocnhh.marx.module.app.Injection
 import sp.kx.logics.Logics
 import java.math.BigInteger
 import java.util.UUID
+import kotlin.reflect.KMutableProperty
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -20,10 +21,12 @@ internal class FooLogics(
         val items: List<Foo>,
     )
 
+    private val logger = injection.loggers.create("[Foo]")
     private val _state = MutableStateFlow<State?>(null)
     val state = _state.asStateFlow()
 
-    private operator fun <T> List<T>.set(predicate: (T) -> Boolean, value: T): List<T> {
+    private operator fun <T> List<T>.plus(pair: Pair<T, (T) -> Boolean>): List<T> {
+        val (value, predicate) = pair
         val result = toMutableList()
         for (i in result.indices) {
             if (predicate(result[i])) {
@@ -32,7 +35,7 @@ internal class FooLogics(
                 return result
             }
         }
-        return result
+        error("The value ($value) is not replaced!")
     }
 
     private fun sha256(
@@ -53,7 +56,9 @@ internal class FooLogics(
     }
 
     private fun updateMeta(id: UUID, bytes: ByteArray): Meta {
+        logger.debug("update meta: $id...")
         val oldMeta = injection.locals.metas.firstOrNull { it.id == id } ?: TODO()
+        logger.debug("old meta: $oldMeta")
         val updated = System.currentTimeMillis().milliseconds
         val sha256 = sha256(
             id = id,
@@ -65,7 +70,8 @@ internal class FooLogics(
             updated = updated,
             hash = sha256,
         )
-        injection.locals.metas[{it.id == id}] = newMeta
+        logger.debug("new meta: $newMeta")
+        injection.locals.metas += newMeta to { it.id == id }
         return newMeta
     }
 
@@ -105,7 +111,7 @@ internal class FooLogics(
                 return result
             }
         }
-        return result
+        error("The value is not deleted!")
     }
 
     fun deleteItem(id: UUID) = launch {
@@ -120,6 +126,7 @@ internal class FooLogics(
     }
 
     fun addItem(text: String) = launch {
+        logger.debug("add item: \"$text\"...")
         val items = withContext(injection.contexts.default) {
             injection.locals.foo + Foo(
                 id = UUID.randomUUID(),
