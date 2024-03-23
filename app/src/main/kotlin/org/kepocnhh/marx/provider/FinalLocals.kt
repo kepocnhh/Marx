@@ -1,21 +1,21 @@
 package org.kepocnhh.marx.provider
 
+import android.content.Context
 import android.content.SharedPreferences
-import org.json.JSONArray
-import org.json.JSONObject
+import android.util.Base64
 import org.kepocnhh.marx.entity.Foo
 import org.kepocnhh.marx.entity.Meta
+import org.kepocnhh.marx.util.ListDelegate
+import java.util.UUID
 
 internal class FinalLocals(
-    private val preferences: SharedPreferences,
-    private val serializer: Serializer,
+    context: Context,
+    serializer: Serializer,
 ) : Locals {
+    private val preferences: SharedPreferences = context.getSharedPreferences(context.packageName, Context.MODE_PRIVATE)
 
     init {
-        val version = preferences.getInt("version", -1)
-        if (version < 0) {
-            preferences.edit().putInt("version", VERSION).commit()
-        } else if (version < VERSION) {
+        if (preferences.getInt("version", -1) < VERSION) {
             preferences
                 .edit()
                 .clear()
@@ -24,52 +24,16 @@ internal class FinalLocals(
         }
     }
 
-    override var foo: List<Foo>
-        get() {
-            return preferences.getList(serializer::toFoo)
-        }
-        set(value) {
-            preferences.putList(value, serializer::serialize)
-        }
+    override var foo: List<Foo> by ListDelegate(preferences, Foo.META_ID.toString(), serializer.foo)
+    override var metas: List<Meta> by ListDelegate(preferences, "metas", serializer.meta)
 
-    override var metas: List<Meta>
-        get() {
-            return preferences.getList(serializer::toMeta)
-        }
-        set(value) {
-            preferences.putList(value, serializer::serialize)
-        }
+    override fun getByMetaId(id: UUID): ByteArray {
+        val base64 = preferences.getString(id.toString(), null)
+        checkNotNull(base64)
+        return Base64.decode(base64, Base64.DEFAULT)
+    }
 
     companion object {
-        private const val VERSION = 7
-
-        private inline fun <reified T : Any> SharedPreferences.putList(
-            items: List<T>,
-            transform: (T) -> ByteArray,
-        ) {
-            val type = T::class.java
-            val array = JSONArray()
-            items.forEach {
-                val bytes = transform(it)
-                array.put(JSONObject(String(bytes)))
-            }
-            edit()
-                .putString("list:${type.name}", array.toString())
-                .commit()
-        }
-
-        private inline fun <reified T : Any> SharedPreferences.getList(
-            transform: (ByteArray) -> T,
-        ): List<T> {
-            val type = T::class.java
-            val json = getString("list:${type.name}", null)
-                ?: return emptyList()
-            val array = JSONArray(json)
-            val items = mutableListOf<T>()
-            for (i in 0 until array.length()) {
-                items.add(transform(array.getJSONObject(i).toString().toByteArray()))
-            }
-            return items
-        }
+        private const val VERSION = 8
     }
 }

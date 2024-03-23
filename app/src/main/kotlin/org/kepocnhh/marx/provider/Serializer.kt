@@ -4,8 +4,13 @@ import org.kepocnhh.marx.entity.Foo
 import org.kepocnhh.marx.entity.Meta
 
 internal interface Serializer {
-    fun toMeta(bytes: ByteArray): Meta
-    fun serialize(value: Meta): ByteArray
-    fun toFoo(bytes: ByteArray): Foo
-    fun serialize(value: Foo): ByteArray
+    interface Transformer<T : Any> {
+        fun toValue(bytes: ByteArray): T
+        fun toList(bytes: ByteArray): List<T>
+        fun toByteArray(value: T): ByteArray
+        fun toByteArray(list: List<T>): ByteArray
+    }
+
+    val meta: Transformer<Meta>
+    val foo: Transformer<Foo>
 }

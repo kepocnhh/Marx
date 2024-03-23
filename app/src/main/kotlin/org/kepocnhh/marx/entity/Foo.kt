@@ -9,6 +9,6 @@ internal data class Foo(
     val text: String,
 ) {
     companion object {
-        val MetaId: UUID = UUID.fromString("84e44670-d301-471b-a7ac-dfd8b1e55554")
+        val META_ID: UUID = UUID.fromString("84e44670-d301-471b-a7ac-dfd8b1e55554")
     }
 }

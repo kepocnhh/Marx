@@ -41,10 +41,10 @@ internal class FooLogics(
         }
         val meta = withContext(injection.contexts.default) {
             injection.locals.metas.firstOrNull {
-                it.id == Foo.MetaId
+                it.id == Foo.META_ID
             } ?: System.currentTimeMillis().milliseconds.let { created ->
                 val meta = Meta(
-                    id = Foo.MetaId,
+                    id = Foo.META_ID,
                     created = created,
                     updated = created,
                     hash = "",
@@ -69,7 +69,7 @@ internal class FooLogics(
         }
         val meta = withContext(injection.contexts.default) {
             injection.locals.metas.firstOrNull {
-                it.id == Foo.MetaId
+                it.id == Foo.META_ID
             }?.update(body = items.toByteArray()) ?: TODO()
         }
         _state.emit(State(meta, items))
@@ -93,7 +93,7 @@ internal class FooLogics(
         }
         val meta = withContext(injection.contexts.default) {
             injection.locals.metas.firstOrNull {
-                it.id == Foo.MetaId
+                it.id == Foo.META_ID
             }?.update(body = items.toByteArray()) ?: TODO()
         }
         _state.emit(State(meta, items))

@@ -20,7 +20,7 @@ internal class FinalRemotes(
         .build()
 
     override fun itemsSync(meta: Meta): ItemsSyncResponse {
-        val body = serializer.serialize(meta).toRequestBody()
+        val body = serializer.meta.toByteArray(meta).toRequestBody()
         val request = Request.Builder()
             .url("http://192.168.88.225:40631/v1/items/sync") // todo
             .header("Content-Type", "application/json")

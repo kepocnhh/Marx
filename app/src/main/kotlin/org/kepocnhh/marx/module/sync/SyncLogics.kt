@@ -33,10 +33,11 @@ internal class SyncLogics(
 
     private suspend fun itemsUpload(meta: Meta, sessionId: UUID) {
         withContext(injection.contexts.default) {
+            val bytes = injection.locals.getByMetaId(id = meta.id)
             runCatching {
                 injection.remotes.itemsUpload(
                     sessionId = sessionId,
-                    bytes = injection.serializer.serialize(meta), // todo
+                    bytes = bytes,
                 )
             }
         }.fold(
