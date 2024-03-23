@@ -6,10 +6,11 @@ import kotlinx.coroutines.withContext
 import org.kepocnhh.marx.entity.Foo
 import org.kepocnhh.marx.entity.Meta
 import org.kepocnhh.marx.module.app.Injection
+import org.kepocnhh.marx.util.minus
+import org.kepocnhh.marx.util.plus
 import sp.kx.logics.Logics
 import java.math.BigInteger
 import java.util.UUID
-import kotlin.reflect.KMutableProperty
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -24,19 +25,6 @@ internal class FooLogics(
     private val logger = injection.loggers.create("[Foo]")
     private val _state = MutableStateFlow<State?>(null)
     val state = _state.asStateFlow()
-
-    private operator fun <T> List<T>.plus(pair: Pair<T, (T) -> Boolean>): List<T> {
-        val (value, predicate) = pair
-        val result = toMutableList()
-        for (i in result.indices) {
-            if (predicate(result[i])) {
-                result.removeAt(i)
-                result.add(value)
-                return result
-            }
-        }
-        error("The value ($value) is not replaced!")
-    }
 
     private fun sha256(
         id: UUID,
@@ -84,11 +72,12 @@ internal class FooLogics(
             injection.locals.metas.firstOrNull {
                 it.id == metaId
             } ?: System.currentTimeMillis().milliseconds.let { created ->
+                // todo
                 val sha256 = sha256(
                     id = metaId,
                     created = created,
                     updated = created,
-                    bytes = injection.serializer.foo.toByteArray(emptyList()),
+                    bytes = injection.serializer.foo.toByteArray(items),
                 )
                 val meta = Meta(
                     id = metaId,
@@ -101,17 +90,6 @@ internal class FooLogics(
             }
         }
         _state.emit(State(meta, items))
-    }
-
-    private operator fun <T> List<T>.minus(predicate: (T) -> Boolean): List<T> {
-        val result = toMutableList()
-        for (i in result.indices) {
-            if (predicate(result[i])) {
-                result.removeAt(i)
-                return result
-            }
-        }
-        error("The value is not deleted!")
     }
 
     fun deleteItem(id: UUID) = launch {
