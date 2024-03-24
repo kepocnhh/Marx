@@ -8,9 +8,7 @@ import org.kepocnhh.marx.module.app.Injection
 import org.kepocnhh.marx.provider.Synchronizer
 import org.kepocnhh.marx.util.minus
 import sp.kx.logics.Logics
-import java.math.BigInteger
 import java.util.UUID
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 internal class FooLogics(
@@ -33,23 +31,6 @@ internal class FooLogics(
 
     val syncBroadcast = synchronizer.broadcast
     val syncState = synchronizer.state
-
-    private fun sha256(
-        id: UUID,
-        created: Duration,
-        updated: Duration,
-        bytes: ByteArray,
-    ): String {
-        val hash = StringBuilder()
-            .append(id)
-            .append(created.inWholeMilliseconds)
-            .append(updated.inWholeMilliseconds)
-            .toString()
-            .toByteArray()
-            .plus(bytes)
-            .let(injection.security::sha256)
-        return String.format("%064x", BigInteger(1, hash))
-    }
 
     fun requestItems() = launch {
         val items = withContext(injection.contexts.default) {

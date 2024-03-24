@@ -4,12 +4,15 @@ import android.content.Context
 import android.content.SharedPreferences
 import org.kepocnhh.marx.entity.Foo
 import org.kepocnhh.marx.entity.Meta
+import java.math.BigInteger
+import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 internal class FinalLocals(
     context: Context,
     serializer: Serializer,
+    security: Security,
 ) : Locals {
     private val preferences: SharedPreferences = context.getSharedPreferences(context.packageName, Context.MODE_PRIVATE)
 
@@ -24,16 +27,44 @@ internal class FinalLocals(
     }
 
     override val foo: Storage<Foo> = object : Storage<Foo> {
+        private fun Meta.updated(
+            updated: Duration,
+            bytes: ByteArray,
+        ): Meta {
+            return copy(
+                updated = updated,
+                hash = sha256(
+                    id = id,
+                    updated = updated,
+                    bytes = bytes,
+                )
+            )
+        }
+
+        private fun sha256(
+            id: UUID,
+            updated: Duration,
+            bytes: ByteArray,
+        ): String {
+            val hash = StringBuilder()
+                .append(id)
+                .append(updated.inWholeMilliseconds)
+                .toString()
+                .toByteArray()
+                .plus(bytes)
+            return String.format("%064x", BigInteger(1, security.sha256(hash)))
+        }
+
         override val meta: Meta
             get() {
                 val json = preferences.getString("${Foo.META_ID}:meta", null)
                 if (json == null) {
+                    val updated = System.currentTimeMillis().milliseconds
                     val meta = Meta(
                         id = Foo.META_ID,
-                        updated = System.currentTimeMillis().milliseconds,
-                        hash = ""
-                    )
-                    // todo hash
+                        updated = updated,
+                        hash = "",
+                    ).updated(updated = updated, bytes = ByteArray(0))
                     preferences.edit()
                         .putString("${Foo.META_ID}:meta", String(serializer.meta.encode(meta)))
                         .commit()
@@ -50,12 +81,13 @@ internal class FinalLocals(
             }
 
         override fun update(items: List<Foo>, updated: Duration) {
-            val meta = meta.copy(
+            val bytes = serializer.foo.list.encode(items)
+            val meta = meta.updated(
                 updated = updated,
+                bytes = bytes,
             )
-            // todo hash
             preferences.edit()
-                .putString(Foo.META_ID.toString(), String(serializer.foo.list.encode(items)))
+                .putString(Foo.META_ID.toString(), String(bytes))
                 .putString("${Foo.META_ID}:meta", String(serializer.meta.encode(meta)))
                 .putLong("${Foo.META_ID}:synchronized", System.currentTimeMillis())
                 .putBoolean("${Foo.META_ID}:modified", false)
@@ -85,12 +117,13 @@ internal class FinalLocals(
         }
 
         override fun update(items: List<Foo>) {
-            val meta = meta.copy(
+            val bytes = serializer.foo.list.encode(items)
+            val meta = meta.updated(
                 updated = System.currentTimeMillis().milliseconds,
+                bytes = bytes,
             )
-            // todo hash
             preferences.edit()
-                .putString(Foo.META_ID.toString(), String(serializer.foo.list.encode(items)))
+                .putString(Foo.META_ID.toString(), String(bytes))
                 .putString("${Foo.META_ID}:meta", String(serializer.meta.encode(meta)))
                 .putBoolean("${Foo.META_ID}:modified", true)
                 .commit()
@@ -98,6 +131,6 @@ internal class FinalLocals(
     }
 
     companion object {
-        private const val VERSION = 11
+        private const val VERSION = 12
     }
 }
