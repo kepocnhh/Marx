@@ -2,11 +2,9 @@ package org.kepocnhh.marx.provider
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.util.Base64
 import org.kepocnhh.marx.entity.Foo
 import org.kepocnhh.marx.entity.Meta
-import org.kepocnhh.marx.util.ListDelegate
-import java.util.UUID
+import kotlin.time.Duration
 
 internal class FinalLocals(
     context: Context,
@@ -24,16 +22,36 @@ internal class FinalLocals(
         }
     }
 
-    override var foo: List<Foo> by ListDelegate(preferences, Foo.META_ID.toString(), serializer.foo)
-    override var metas: List<Meta> by ListDelegate(preferences, "metas", serializer.meta)
+    override val foo: Storage<Foo> = object : Storage<Foo> {
+        override val meta: Meta
+            get() {
+                val json = preferences.getString("${Foo.META_ID}:meta", null)
+                if (json == null) {
+                    TODO()
+                }
+                return serializer.meta.toValue(json.toByteArray())
+            }
 
-    override fun getByMetaId(id: UUID): ByteArray {
-        val base64 = preferences.getString(id.toString(), null)
-        checkNotNull(base64)
-        return Base64.decode(base64, Base64.DEFAULT)
+        override val items: List<Foo>
+            get() {
+                val json = preferences.getString(Foo.META_ID.toString(), null)
+                if (json == null) return emptyList()
+                return serializer.foo.toList(json.toByteArray())
+            }
+
+        override fun update(items: List<Foo>, updated: Duration) {
+            val meta = meta.copy(
+                updated = updated,
+            )
+            // todo hash
+            preferences.edit()
+                .putString(Foo.META_ID.toString(), String(serializer.foo.toByteArray(items)))
+                .putString("${Foo.META_ID}:meta", String(serializer.meta.toByteArray(meta)))
+                .commit()
+        }
     }
 
     companion object {
-        private const val VERSION = 9
+        private const val VERSION = 10
     }
 }

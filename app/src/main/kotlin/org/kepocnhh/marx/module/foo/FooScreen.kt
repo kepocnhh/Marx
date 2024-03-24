@@ -29,7 +29,7 @@ import androidx.compose.ui.window.Dialog
 import org.kepocnhh.marx.App
 import org.kepocnhh.marx.entity.Foo
 import org.kepocnhh.marx.entity.Meta
-import org.kepocnhh.marx.module.sync.SyncLogics
+import org.kepocnhh.marx.provider.Synchronizer
 import org.kepocnhh.marx.util.compose.BackHandler
 import org.kepocnhh.marx.util.compose.ColumnButton
 import org.kepocnhh.marx.util.compose.ColumnText
@@ -39,21 +39,23 @@ import java.util.UUID
 
 @Composable
 private fun FooScreen(
-    meta: Meta,
     items: List<Foo>,
 ) {
     val logics = App.logics<FooLogics>()
-    val syncLogics = App.logics<SyncLogics>()
-    val syncState = syncLogics.state.collectAsState().value
+    val syncState = logics.syncState.collectAsState().value
     LaunchedEffect(Unit) {
-        syncLogics.broadcast.collect { broadcast ->
+        logics.syncBroadcast.collect { broadcast ->
             when (broadcast) {
-                is SyncLogics.Broadcast.OnError -> {
-                    // todo
-                }
-                is SyncLogics.Broadcast.OnSuccess -> {
-                    if (broadcast.modified) {
-                        logics.requestItems()
+                is Synchronizer.Broadcast.OnSyncResult -> {
+                    when (broadcast.result) {
+                        is Synchronizer.SyncResult.OnError -> {
+                            // todo
+                        }
+                        is Synchronizer.SyncResult.OnSuccess -> {
+                            if (broadcast.result.modified) {
+                                logics.requestItems()
+                            }
+                        }
                     }
                 }
             }
@@ -164,7 +166,7 @@ private fun FooScreen(
                 enabled = !syncState.loading,
                 text = "sync",
                 onClick = {
-                    syncLogics.itemsSync(metaId = meta.id)
+                    logics.sync()
                 },
             )
             Spacer(modifier = Modifier.weight(1f))
@@ -199,7 +201,6 @@ internal fun FooScreen(
     }
     if (state != null) {
         FooScreen(
-            meta = state.meta,
             items = state.items,
         )
     }

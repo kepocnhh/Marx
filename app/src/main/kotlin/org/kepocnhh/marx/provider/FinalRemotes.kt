@@ -8,6 +8,7 @@ import org.kepocnhh.marx.entity.Meta
 import org.kepocnhh.marx.entity.remote.ItemsSyncResponse
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.milliseconds
 
 internal class FinalRemotes(
     private val serializer: Serializer,
@@ -29,7 +30,15 @@ internal class FinalRemotes(
         return client.newCall(request).execute().use { response ->
             when (response.code) {
                 200 -> {
-                    TODO("Download!")
+                    val updated = response
+                        .header("Meta-Updated", null)
+                        ?.toLongOrNull()
+                        ?.milliseconds
+                        ?: TODO()
+                    ItemsSyncResponse.Download(
+                        updated = updated,
+                        bytes = response.body?.bytes() ?: TODO(),
+                    )
                 }
                 201 -> {
                     val sessionId = response.header("Session-Id", null)?.let {
