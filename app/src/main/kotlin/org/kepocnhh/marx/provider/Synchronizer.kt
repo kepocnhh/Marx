@@ -9,7 +9,7 @@ import org.kepocnhh.marx.entity.remote.ItemsSyncResponse
 internal class Synchronizer<T : Any>(
     private val storage: Storage<T>,
     private val remotes: Remotes,
-    private val transformer: Serializer.Transformer<T>,
+    private val transformer: Transformer<List<T>>,
 ) {
     sealed interface Broadcast {
         data class OnSyncResult(val result: SyncResult) : Broadcast
@@ -34,7 +34,7 @@ internal class Synchronizer<T : Any>(
         return runCatching {
             remotes.itemsUpload(
                 sessionId = response.sessionId,
-                bytes = transformer.toByteArray(storage.items),
+                bytes = transformer.encode(storage.items),
             )
         }.fold(
             onSuccess = {
@@ -47,7 +47,7 @@ internal class Synchronizer<T : Any>(
     }
 
     private fun onItemsDownload(response: ItemsSyncResponse.Download): SyncResult {
-        val items = transformer.toList(response.bytes)
+        val items = transformer.decode(response.bytes)
         storage.update(items = items, updated = response.updated)
         return SyncResult.OnSuccess(modified = true)
     }

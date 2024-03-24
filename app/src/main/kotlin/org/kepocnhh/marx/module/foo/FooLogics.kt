@@ -28,7 +28,7 @@ internal class FooLogics(
     private val synchronizer = Synchronizer(
         storage = injection.locals.foo,
         remotes = injection.remotes,
-        transformer = injection.serializer.foo,
+        transformer = injection.serializer.foo.list,
     )
 
     val syncBroadcast = synchronizer.broadcast
